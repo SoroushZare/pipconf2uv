@@ -103,19 +103,15 @@ def test_global_and_user_files_match_real_pip(tmp_path):
     env, home = _clean_environment(tmp_path)
     proc = subprocess.run(
         [sys.executable, "-m", "pip", "config", "debug"],
+        check=False,
         env=env,
         cwd=str(tmp_path),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         timeout=180,
     )
     output = proc.stdout.decode("utf-8", "replace")
     if proc.returncode != 0:
-        pytest.skip(
-            "`pip config debug` failed (exit {}); this pip may be too old".format(
-                proc.returncode
-            )
-        )
+        pytest.skip(f"`pip config debug` failed (exit {proc.returncode}); this pip may be too old")
     pip_files = parse_pip_config_debug(output)
     if pip_files is None:
         pytest.skip("the output format of `pip config debug` was not recognised")
@@ -125,6 +121,6 @@ def test_global_and_user_files_match_real_pip(tmp_path):
     ours = candidate_files(env=discover_env, platform=sys.platform, home=home)
 
     for kind in ("global", "user"):
-        assert _normalise(c.path for c in ours if c.kind == kind) == _normalise(
-            pip_files[kind]
-        ), "{} files differ from pip's".format(kind)
+        assert _normalise(c.path for c in ours if c.kind == kind) == _normalise(pip_files[kind]), (
+            f"{kind} files differ from pip's"
+        )

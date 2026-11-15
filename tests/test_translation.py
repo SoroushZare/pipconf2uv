@@ -23,11 +23,7 @@ FALSE_WORDS = ["0", "n", "no", "f", "false", "off", "FALSE", "No", "Off"]
 
 def mentions_index_strategy(note):
     text = note["message"].lower()
-    return (
-        "unsafe-best-match" in text
-        or "index-strategy" in text
-        or "dependency confusion" in text
-    )
+    return "unsafe-best-match" in text or "index-strategy" in text or "dependency confusion" in text
 
 
 # -- statuses ----------------------------------------------------------------
@@ -36,11 +32,11 @@ def mentions_index_strategy(note):
 def test_every_setting_has_exactly_one_known_status(cli):
     cli.user_conf(
         "[global]\n"
-        "index-url = {}\n"
+        f"index-url = {MIRROR}\n"
         "timeout = 30\n"
         "prefer-binary = true\n"
         "quiet = 1\n"
-        "definitely-not-a-pip-option = 1\n".format(MIRROR)
+        "definitely-not-a-pip-option = 1\n"
     )
     report = cli.json()
     assert len(report.settings) == 5
@@ -70,9 +66,7 @@ def test_index_url_becomes_the_default_primary_index(cli):
     assert report.status("index-url") == "translated"
 
 
-@pytest.mark.parametrize(
-    "url", ["https://pypi.org/simple", "https://pypi.org/simple/"]
-)
+@pytest.mark.parametrize("url", ["https://pypi.org/simple", "https://pypi.org/simple/"])
 def test_pypi_index_url_is_ignored_and_emits_nothing(cli, url):
     cli.options(index_url=url)
     report = cli.json()
@@ -98,7 +92,7 @@ def test_single_custom_index_does_not_set_index_strategy(cli):
 
 
 def test_extra_index_urls_are_named_in_order_and_come_before_the_default(cli):
-    cli.options(index_url=MIRROR, extra_index_url="{} {}".format(EXTRA_1, EXTRA_2))
+    cli.options(index_url=MIRROR, extra_index_url=f"{EXTRA_1} {EXTRA_2}")
     report = cli.json()
     assert report.indexes == [
         ("extra-1", EXTRA_1, False),
@@ -109,9 +103,7 @@ def test_extra_index_urls_are_named_in_order_and_come_before_the_default(cli):
 
 
 def test_extra_index_urls_split_on_newlines_too(cli):
-    cli.user_conf(
-        "[global]\nextra-index-url =\n    {}\n    {}\n".format(EXTRA_1, EXTRA_2)
-    )
+    cli.user_conf(f"[global]\nextra-index-url =\n    {EXTRA_1}\n    {EXTRA_2}\n")
     report = cli.json()
     assert [url for _, url, _ in report.indexes] == [EXTRA_1, EXTRA_2]
 
@@ -147,7 +139,7 @@ def test_extra_index_plus_implicit_pypi_counts_as_two_indexes(cli):
 def test_two_extra_indexes_with_no_index_count_as_two_indexes(cli):
     # ASSUMPTION: no-index only removes the implicit PyPI from the count;
     # explicitly configured indexes are still emitted and counted.
-    cli.options(no_index="true", extra_index_url="{} {}".format(EXTRA_1, EXTRA_2))
+    cli.options(no_index="true", extra_index_url=f"{EXTRA_1} {EXTRA_2}")
     assert cli.json().uv["index-strategy"] == "unsafe-best-match"
 
 
@@ -196,7 +188,7 @@ def test_no_index_false_does_not_enable_no_index(cli, word):
 )
 @pytest.mark.parametrize("value", ["maybe", "2", "truthy"])
 def test_invalid_boolean_is_unsupported_with_a_warning(cli, option, uv_key, value):
-    cli.user_conf("[global]\n{} = {}\n".format(option, value))
+    cli.user_conf(f"[global]\n{option} = {value}\n")
     report = cli.json()
     assert report.status(option) == "unsupported"
     assert uv_key not in report.uv
@@ -255,7 +247,11 @@ def test_no_trusted_host_means_no_insecure_hosts_and_no_warning(cli):
 
 @pytest.mark.parametrize(
     "value",
-    ["http://proxy.example.com:3128", "https://proxy.example.com:3128", "socks5://proxy.example.com:1080"],
+    [
+        "http://proxy.example.com:3128",
+        "https://proxy.example.com:3128",
+        "socks5://proxy.example.com:1080",
+    ],
 )
 def test_proxy_with_scheme_is_used_as_is_for_both_keys(cli, value):
     cli.options(proxy=value)
@@ -306,17 +302,15 @@ ENV_ROWS = [
 
 @pytest.mark.parametrize("option, value, variable, expected", ENV_ROWS)
 def test_option_becomes_an_environment_variable(cli, option, value, variable, expected):
-    cli.user_conf("[global]\n{} = {}\n".format(option, value))
+    cli.user_conf(f"[global]\n{option} = {value}\n")
     report = cli.json()
     assert report.status(option) == "env"
     assert report.env == [{"name": variable, "value": expected, "from": option}]
 
 
 @pytest.mark.parametrize("option, value, variable, expected", ENV_ROWS)
-def test_environment_only_option_writes_nothing_to_uv_toml(
-    cli, option, value, variable, expected
-):
-    cli.user_conf("[global]\n{} = {}\n".format(option, value))
+def test_environment_only_option_writes_nothing_to_uv_toml(cli, option, value, variable, expected):
+    cli.user_conf(f"[global]\n{option} = {value}\n")
     assert cli.json().uv == {}
 
 
@@ -405,7 +399,7 @@ BINARY_ROWS = [
 
 @pytest.mark.parametrize("option, all_key, package_key", BINARY_ROWS)
 def test_binary_option_all(cli, option, all_key, package_key):
-    cli.user_conf("[global]\n{} = :all:\n".format(option))
+    cli.user_conf(f"[global]\n{option} = :all:\n")
     report = cli.json()
     assert report.uv == {all_key: True}
     assert report.status(option) == "translated"
@@ -413,7 +407,7 @@ def test_binary_option_all(cli, option, all_key, package_key):
 
 @pytest.mark.parametrize("option, all_key, package_key", BINARY_ROWS)
 def test_binary_option_none_is_ignored(cli, option, all_key, package_key):
-    cli.user_conf("[global]\n{} = :none:\n".format(option))
+    cli.user_conf(f"[global]\n{option} = :none:\n")
     report = cli.json()
     assert report.status(option) == "ignored"
     assert report.uv == {}
@@ -421,7 +415,7 @@ def test_binary_option_none_is_ignored(cli, option, all_key, package_key):
 
 @pytest.mark.parametrize("option, all_key, package_key", BINARY_ROWS)
 def test_binary_option_names_split_on_commas(cli, option, all_key, package_key):
-    cli.user_conf("[global]\n{} = numpy,scipy,lxml\n".format(option))
+    cli.user_conf(f"[global]\n{option} = numpy,scipy,lxml\n")
     report = cli.json()
     assert report.uv == {package_key: ["numpy", "scipy", "lxml"]}
     assert report.status(option) == "translated"
@@ -429,7 +423,7 @@ def test_binary_option_names_split_on_commas(cli, option, all_key, package_key):
 
 @pytest.mark.parametrize("option, all_key, package_key", BINARY_ROWS)
 def test_binary_option_single_name_is_a_package_list(cli, option, all_key, package_key):
-    cli.user_conf("[global]\n{} = numpy\n".format(option))
+    cli.user_conf(f"[global]\n{option} = numpy\n")
     assert cli.json().uv == {package_key: ["numpy"]}
 
 
@@ -441,16 +435,29 @@ def test_no_binary_and_only_binary_do_not_cross_over(cli):
 # -- no-build-isolation ------------------------------------------------------
 
 
-def test_no_build_isolation_true(cli):
-    cli.options(no_build_isolation="true")
+# pip stores this option as "build isolation enabled" and assigns the parsed
+# boolean from a config file or environment variable to it directly, so the
+# value reads inverted: false disables isolation, true leaves it enabled.
+# Checked against real pip: PIP_NO_BUILD_ISOLATION=0 gives build_isolation
+# false, PIP_NO_BUILD_ISOLATION=1 gives build_isolation true.
+
+
+@pytest.mark.parametrize("value", ["false", "0", "no", "off"])
+def test_no_build_isolation_false_disables_isolation(cli, value):
+    cli.options(no_build_isolation=value)
     report = cli.json()
     assert report.uv == {"no-build-isolation": True}
     assert report.status("no-build-isolation") == "translated"
+    assert report.notes(key="no-build-isolation")
 
 
-def test_no_build_isolation_false_does_not_disable_isolation(cli):
-    cli.options(no_build_isolation="false")
-    assert cli.json().uv.get("no-build-isolation") is not True
+@pytest.mark.parametrize("value", ["true", "1", "yes", "on"])
+def test_no_build_isolation_true_leaves_isolation_enabled(cli, value):
+    cli.options(no_build_isolation=value)
+    report = cli.json()
+    assert "no-build-isolation" not in report.uv
+    assert report.status("no-build-isolation") == "ignored"
+    assert report.notes(key="no-build-isolation", level="warning")
 
 
 # -- config-settings ---------------------------------------------------------
@@ -459,19 +466,15 @@ def test_no_build_isolation_false_does_not_disable_isolation(cli):
 def test_config_settings_become_a_table(cli):
     cli.options(config_settings="editable_mode=compat builddir=out")
     report = cli.json()
-    assert report.uv == {
-        "config-settings": {"editable_mode": "compat", "builddir": "out"}
-    }
+    assert report.uv == {"config-settings": {"editable_mode": "compat", "builddir": "out"}}
     assert report.status("config-settings") == "translated"
-    assert re.search(r"^\[config-settings\]\s*$", report.uv_toml, re.M)
+    assert re.search(r"^\[config-settings\]\s*$", report.uv_toml, re.MULTILINE)
 
 
 def test_config_settings_value_may_contain_an_equals_sign(cli):
     # ASSUMPTION: KEY=VALUE is split on the first "=" (as pip does).
     cli.options(config_settings="--build-option=--plat-name=linux_x86_64")
-    assert cli.json().uv == {
-        "config-settings": {"--build-option": "--plat-name=linux_x86_64"}
-    }
+    assert cli.json().uv == {"config-settings": {"--build-option": "--plat-name=linux_x86_64"}}
 
 
 def test_no_config_settings_means_no_table(cli):
@@ -524,7 +527,7 @@ def test_require_hashes_goes_under_pip_with_a_note(cli):
     assert report.uv == {"pip": {"require-hashes": True}}
     assert report.status("require-hashes") == "translated"
     assert report.notes(key="require-hashes")
-    assert re.search(r"^\[pip\]\s*$", report.uv_toml, re.M)
+    assert re.search(r"^\[pip\]\s*$", report.uv_toml, re.MULTILINE)
 
 
 def test_require_hashes_is_not_a_top_level_key(cli):
@@ -544,7 +547,7 @@ def test_require_hashes_is_not_a_top_level_key(cli):
     ],
 )
 def test_uv_pip_only_options_go_under_pip_with_a_note(cli, option, value, expected):
-    cli.user_conf("[global]\n{} = {}\n".format(option, value))
+    cli.user_conf(f"[global]\n{option} = {value}\n")
     report = cli.json()
     assert report.uv == {"pip": expected}
     assert report.status(option) == "translated"
@@ -555,7 +558,7 @@ def test_uv_pip_only_options_go_under_pip_with_a_note(cli, option, value, expect
     "option", ["require-hashes", "break-system-packages", "no-deps", "no-dependencies"]
 )
 def test_false_uv_pip_boolean_is_not_enabled(cli, option):
-    cli.user_conf("[global]\n{} = false\n".format(option))
+    cli.user_conf(f"[global]\n{option} = false\n")
     pip_table = cli.json().uv.get("pip", {})
     assert all(value is not True for value in pip_table.values())
 
@@ -597,7 +600,7 @@ IGNORED = [
 
 @pytest.mark.parametrize("option, value", IGNORED, ids=[o for o, _ in IGNORED])
 def test_pip_only_option_is_ignored(cli, option, value):
-    cli.user_conf("[global]\n{} = {}\n".format(option, value))
+    cli.user_conf(f"[global]\n{option} = {value}\n")
     report = cli.json()
     assert report.status(option) == "ignored"
     assert report.uv == {}
@@ -630,7 +633,7 @@ UNSUPPORTED = [
 
 @pytest.mark.parametrize("option, value", UNSUPPORTED, ids=[o for o, _ in UNSUPPORTED])
 def test_pip_option_without_uv_equivalent_is_unsupported(cli, option, value):
-    cli.user_conf("[global]\n{} = {}\n".format(option, value))
+    cli.user_conf(f"[global]\n{option} = {value}\n")
     report = cli.json()
     assert report.status(option) == "unsupported"
     assert report.uv == {}
@@ -651,7 +654,7 @@ def test_unsupported_setting_is_reported_not_dropped(cli):
     "option", ["definitely-not-a-pip-option", "indexurl", "index-urls", "extra-index"]
 )
 def test_non_pip_option_is_unknown(cli, option):
-    cli.user_conf("[global]\n{} = https://mirror.example.com/simple\n".format(option))
+    cli.user_conf(f"[global]\n{option} = https://mirror.example.com/simple\n")
     report = cli.json()
     assert report.status(option) == "unknown"
     assert report.uv == {}
@@ -675,8 +678,8 @@ def test_known_options_are_never_unknown(cli):
 def test_combined_configuration(cli):
     cli.user_conf(
         "[global]\n"
-        "index-url = {mirror}\n"
-        "extra-index-url = {extra}\n"
+        f"index-url = {MIRROR}\n"
+        f"extra-index-url = {EXTRA_1}\n"
         "trusted-host = mirror.example.com\n"
         "timeout = 60\n"
         "no-cache-dir = false\n"
@@ -685,7 +688,7 @@ def test_combined_configuration(cli):
         "find-links = /srv/wheels\n"
         "no-binary = lxml\n"
         "require-hashes = true\n"
-        "prefer-binary = true\n".format(mirror=MIRROR, extra=EXTRA_1)
+        "prefer-binary = true\n"
     )
     report = cli.json()
     assert report.uv == {

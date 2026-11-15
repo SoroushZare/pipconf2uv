@@ -42,7 +42,7 @@ File name is `pip.ini` on `win32`, otherwise `pip.conf`.
 
 - linux (and any other POSIX platform): for each entry `d` of `XDG_CONFIG_DIRS` (split on `:`, default `/etc/xdg`): `d/pip/pip.conf`; then `/etc/pip.conf`.
 - darwin: `/Library/Application Support/pip/pip.conf`.
-- win32: `%PROGRAMDATA%\pip\pip.ini` (default `C:\ProgramData`).
+- win32: `%PROGRAMDATA%\pip\pip.ini` (default `C:\ProgramData`). pip asks the operating system for this folder and for the roaming application-data folder; this tool reads the corresponding environment variables instead, which differ only on machines that redirect those folders without updating the variables.
 
 **user** (two files, legacy first; the second overrides the first)
 
@@ -50,7 +50,7 @@ File name is `pip.ini` on `win32`, otherwise `pip.conf`.
 - darwin: `~/.pip/pip.conf`, then `~/Library/Application Support/pip/pip.conf` if the directory `~/Library/Application Support/pip` exists (`isdir`), otherwise `~/.config/pip/pip.conf`. `XDG_CONFIG_HOME` is not consulted on darwin.
 - win32: `~\pip\pip.ini`, then `%APPDATA%\pip\pip.ini` (default `~\AppData\Roaming`).
 
-**site**: `<prefix>/pip.conf` where prefix is `site_prefix`, else `VIRTUAL_ENV`, else `CONDA_PREFIX`. If none is set there is no site file. (pip uses its own interpreter's `sys.prefix`; this tool usually runs in a different environment, so it cannot use its own.)
+**site**: `<prefix>/pip.conf` (`pip.ini` on win32) where prefix is `site_prefix`, else `VIRTUAL_ENV`, else `CONDA_PREFIX`. If none is set there is no site file. (pip uses its own interpreter's `sys.prefix`; this tool usually runs in a different environment, so it cannot use its own.)
 
 **env**: the value of `PIP_CONFIG_FILE`, if set.
 
@@ -108,7 +108,7 @@ List options split on whitespace, as pip does for config values. `no-binary` and
 | `pre` | true → `prerelease = "allow"`; false → `ignored`. |
 | `no-binary` | `:all:` → `no-binary = true`; `:none:` → `ignored`; names → `no-binary-package = [...]` |
 | `only-binary` | `:all:` → `no-build = true`; `:none:` → `ignored`; names → `no-build-package = [...]` |
-| `no-build-isolation` | `no-build-isolation = true` |
+| `no-build-isolation` | Inverted in pip: the option is stored as "build isolation enabled" and a value from a config file or environment variable is assigned to it directly. A **false** value disables isolation → `no-build-isolation = true` with a note. A **true** value leaves isolation enabled → `ignored` with a warning note. |
 | `config-settings` | `[config-settings]` table from `KEY=VALUE` items |
 | `keyring-provider` | `subprocess` / `disabled` → same value; `auto` / `import` → `unsupported` (uv supports only `subprocess`). |
 | `uploaded-prior-to` | `exclude-newer` with the same value, plus a note to check the format (pip assumes local time when no zone is given). |
@@ -127,7 +127,7 @@ User-info (`user:password@` or `token@`) can appear in index URLs, find-links UR
 
 - In the settings listing, notes, JSON `settings` and any error message, user-info is always shown as `****`.
 - In generated uv configuration, user-info is removed by default and a note says how to supply it: `UV_INDEX_<NAME>_USERNAME` / `UV_INDEX_<NAME>_PASSWORD` for an index (name upper-cased, non-alphanumerics → `_`), or the `HTTPS_PROXY` variable for a proxy.
-- `--include-credentials` keeps user-info in the generated TOML (and only there). A file written this way is created with mode `0600` on POSIX.
+- `--include-credentials` keeps user-info in the generated configuration: `--format toml`, the `uv` and `uv_toml` fields of `--format json`, and a file written with `--write` (created with mode `0600` on POSIX). The text report is meant for a terminal and stays masked even with this flag.
 
 ## 4. Output (`pipconf2uv.render`, `pipconf2uv.toml_writer`)
 

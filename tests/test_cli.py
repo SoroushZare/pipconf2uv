@@ -12,24 +12,24 @@ MIRROR = "https://mirror.example.com/simple"
 
 SAMPLE = (
     "[global]\n"
-    "index-url = {}\n"
+    f"index-url = {MIRROR}\n"
     "extra-index-url = https://extra.example.com/simple\n"
     "trusted-host = mirror.example.com\n"
     "timeout = 60\n"
     "prefer-binary = true\n"
     "[install]\n"
     "find-links = /srv/wheels\n"
-    "require-hashes = true\n".format(MIRROR)
+    "require-hashes = true\n"
 )
 
-ONLY_TRANSLATABLE = "[global]\nindex-url = {}\nfind-links = /srv/wheels\n".format(MIRROR)
+ONLY_TRANSLATABLE = f"[global]\nindex-url = {MIRROR}\nfind-links = /srv/wheels\n"
 
 
 def tilde(cli, path):
     """``path`` the way the text report shows it: home prefix replaced by ``~``."""
     home = str(cli.home)
     assert str(path).startswith(home)
-    return "~" + str(path)[len(home):]
+    return "~" + str(path)[len(home) :]
 
 
 def shows_path(cli, text, path):
@@ -40,14 +40,14 @@ def shows_path(cli, text, path):
 
 
 def key_line(toml_text, key):
-    match = re.search(r"^{}\s*=".format(re.escape(key)), toml_text, re.M)
-    assert match, "no top-level line for {!r} in:\n{}".format(key, toml_text)
+    match = re.search(rf"^{re.escape(key)}\s*=", toml_text, re.MULTILINE)
+    assert match, f"no top-level line for {key!r} in:\n{toml_text}"
     return match.start()
 
 
 def header_line(toml_text, header):
-    match = re.search(r"^{}\s*$".format(re.escape(header)), toml_text, re.M)
-    assert match, "no {!r} header in:\n{}".format(header, toml_text)
+    match = re.search(rf"^{re.escape(header)}\s*$", toml_text, re.MULTILINE)
+    assert match, f"no {header!r} header in:\n{toml_text}"
     return match.start()
 
 
@@ -218,7 +218,7 @@ def test_toml_key_order_is_fixed(cli):
         "config-settings = editable_mode=compat\n"
         "uploaded-prior-to = 2025-06-01\n"
         "keyring-provider = subprocess\n"
-        "no-build-isolation = true\n"
+        "no-build-isolation = false\n"
         "only-binary = numpy\n"
         "no-binary = lxml\n"
         "pre = true\n"
@@ -228,7 +228,7 @@ def test_toml_key_order_is_fixed(cli):
         "find-links = /srv/wheels\n"
         "no-index = true\n"
         "extra-index-url = https://one.example.com/simple https://two.example.com/simple\n"
-        "index-url = {}\n".format(MIRROR)
+        f"index-url = {MIRROR}\n"
     )
     toml_text = cli.json().uv_toml
     scalars = [
@@ -277,7 +277,7 @@ ESCAPING_IN_FILE = [
     "value", [c[1] for c in ESCAPING_IN_FILE], ids=[c[0] for c in ESCAPING_IN_FILE]
 )
 def test_special_characters_round_trip_through_toml(cli, value):
-    cli.user_conf("[global]\ntarget = {}\n".format(value))
+    cli.user_conf(f"[global]\ntarget = {value}\n")
     report = cli.json()  # also checks uv_toml parses back to the uv object
     assert report.uv == {"pip": {"target": value}}
     result = cli.run("--format", "toml")
@@ -649,7 +649,9 @@ def test_written_file_matches_the_toml_format_output(cli):
 def test_two_runs_are_byte_identical(cli, fmt):
     cli.write_conf("user-legacy", "[global]\nno-binary = b,a,c\nconstraint = /z.txt /a.txt\n")
     cli.write_conf("user", SAMPLE)
-    cli.write_conf("site", "[install]\nconfig-settings = z=1 a=2 m=3\n[wheel]\nx = 1\n[freeze]\ny = 2\n")
+    cli.write_conf(
+        "site", "[install]\nconfig-settings = z=1 a=2 m=3\n[wheel]\nx = 1\n[freeze]\ny = 2\n"
+    )
     cli.setenv("PIP_RETRIES", "3")
     cli.setenv("PIP_NO_BUILD_ISOLATION", "1")
     cli.setenv("PIP_ABI", "cp311")

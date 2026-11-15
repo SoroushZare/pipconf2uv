@@ -10,7 +10,7 @@ import pytest
 
 
 def conf(section, **options):
-    lines = ["[{}]".format(section)]
+    lines = [f"[{section}]"]
     lines += ["{} = {}".format(k.replace("_", "-"), v) for k, v in options.items()]
     return "\n".join(lines) + "\n"
 
@@ -98,9 +98,7 @@ def test_site_file_is_not_read_without_a_prefix(cli):
 
 
 def test_command_section_beats_global_section_in_the_same_file(cli):
-    cli.user_conf(
-        conf("install", find_links="/install") + conf("global", find_links="/global")
-    )
+    cli.user_conf(conf("install", find_links="/install") + conf("global", find_links="/global"))
     report = cli.json()
     assert report.uv["find-links"] == ["/install"]
     assert report.setting("find-links")["source"]["section"] == "install"
@@ -393,7 +391,7 @@ def test_selected_sections_get_no_untranslated_section_note(cli):
     "spelling", ["Index_URL", "INDEX-URL", "index_url", "--index-url", "--Index_Url"]
 )
 def test_option_names_in_files_are_normalised(cli, spelling):
-    cli.user_conf("[global]\n{} = https://mirror.example.com/simple\n".format(spelling))
+    cli.user_conf(f"[global]\n{spelling} = https://mirror.example.com/simple\n")
     report = cli.json()
     assert report.keys == ["index-url"]
     assert report.indexes == [("primary", "https://mirror.example.com/simple", True)]
@@ -401,7 +399,7 @@ def test_option_names_in_files_are_normalised(cli, spelling):
 
 def test_environment_variable_names_are_normalised(cli):
     cli.setenv("PIP_EXTRA_INDEX_URL", "https://extra.example.com/simple")
-    cli.setenv("PIP_NO_BUILD_ISOLATION", "1")
+    cli.setenv("PIP_NO_BUILD_ISOLATION", "0")
     report = cli.json()
     assert sorted(report.keys) == ["extra-index-url", "no-build-isolation"]
     assert report.uv["no-build-isolation"] is True

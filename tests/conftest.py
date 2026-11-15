@@ -75,9 +75,7 @@ class Result:
         return self.out + "\n" + self.err
 
     def __repr__(self):
-        return "Result(code={!r})\n--- stdout ---\n{}\n--- stderr ---\n{}".format(
-            self.code, self.out, self.err
-        )
+        return f"Result(code={self.code!r})\n--- stdout ---\n{self.out}\n--- stderr ---\n{self.err}"
 
 
 class Report:
@@ -120,9 +118,7 @@ class Report:
 
     def setting(self, key):
         found = [s for s in self.settings if s["key"] == key]
-        assert len(found) == 1, "expected exactly one setting {!r}, got {!r}".format(
-            key, self.settings
-        )
+        assert len(found) == 1, f"expected exactly one setting {key!r}, got {self.settings!r}"
         return found[0]
 
     def status(self, key):
@@ -136,9 +132,7 @@ class Report:
 
     def env_var(self, name):
         found = [e for e in self.env if e["name"] == name]
-        assert len(found) == 1, "expected exactly one env entry {!r}, got {!r}".format(
-            name, self.env
-        )
+        assert len(found) == 1, f"expected exactly one env entry {name!r}, got {self.env!r}"
         return found[0]
 
     def env_names(self):
@@ -218,13 +212,9 @@ class Cli:
         import pipconf2uv
 
         env = dict(os.environ)
-        package_parent = os.path.dirname(
-            os.path.dirname(os.path.abspath(pipconf2uv.__file__))
-        )
+        package_parent = os.path.dirname(os.path.dirname(os.path.abspath(pipconf2uv.__file__)))
         existing = env.get("PYTHONPATH")
-        env["PYTHONPATH"] = (
-            package_parent + os.pathsep + existing if existing else package_parent
-        )
+        env["PYTHONPATH"] = package_parent + os.pathsep + existing if existing else package_parent
         env["PYTHONIOENCODING"] = "utf-8"
         return env
 
@@ -232,10 +222,10 @@ class Cli:
         """Run ``python -m pipconf2uv`` in a child process."""
         proc = subprocess.run(
             [sys.executable, "-m", "pipconf2uv"] + [str(a) for a in args],
+            check=False,
             env=self.subprocess_env(),
             cwd=str(self.tmp_path),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=120,
         )
         return Result(
@@ -258,9 +248,7 @@ class Cli:
 
     def _skip_if_host_config_can_leak(self):
         for candidate in self.candidates():
-            if not _is_under(candidate.path, self.tmp_path) and os.path.exists(
-                candidate.path
-            ):
+            if not _is_under(candidate.path, self.tmp_path) and os.path.exists(candidate.path):
                 pytest.skip(
                     "this machine has a system-wide pip configuration file that "
                     "cannot be isolated from the tests: " + candidate.path
@@ -279,12 +267,12 @@ class Cli:
         candidates = self.candidates(site_prefix=self.site_prefix)
         kind = "user" if where == "user-legacy" else where
         paths = [c.path for c in candidates if c.kind == kind]
-        assert paths, "candidate_files returned no {!r} file".format(kind)
+        assert paths, f"candidate_files returned no {kind!r} file"
         path = paths[0] if where in ("user-legacy", "global", "site") else paths[-1]
         if not _is_under(path, self.tmp_path):
             pytest.skip(
-                "the {} pip configuration file cannot be redirected into a "
-                "temporary directory on this platform: {}".format(where, path)
+                f"the {where} pip configuration file cannot be redirected into a "
+                f"temporary directory on this platform: {path}"
             )
         return path
 
@@ -308,7 +296,7 @@ class Cli:
 
     def options(self, section="global", **options):
         """Write ``[section]`` with ``options`` (``_`` in names becomes ``-``)."""
-        lines = ["[{}]".format(section)]
+        lines = [f"[{section}]"]
         for name, value in options.items():
             lines.append("{} = {}".format(name.replace("_", "-"), value))
         return self.user_conf("\n".join(lines) + "\n")
@@ -339,7 +327,7 @@ class Cli:
         try:
             data = json.loads(result.out)
         except ValueError:
-            pytest.fail("stdout is not a single JSON document:\n{!r}".format(result))
+            pytest.fail(f"stdout is not a single JSON document:\n{result!r}")
         assert isinstance(data, dict), result
         assert parse_toml(data["uv_toml"]) == data["uv"], (
             "uv_toml does not parse to the same data as the uv object"

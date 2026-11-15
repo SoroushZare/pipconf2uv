@@ -103,6 +103,20 @@ _UNSUPPORTED = frozenset(
         "no-clean",
         "exists-action",
         "no-proxy-env",
+        "destination-dir",
+        "destination-directory",
+        "hash",
+        "json",
+        "no-require-hashes",
+        "no-user",
+        "no-verify",
+        "only-dependencies",
+        "only-deps",
+        "pypi-url",
+        "refresh-package",
+        "source",
+        "source-dir",
+        "source-directory",
         # Other pip options.
         "abis",
         "all",
@@ -442,20 +456,32 @@ class _Translator:
             self.statuses[setting.key] = IGNORED
 
     def no_build_isolation(self, setting: Setting) -> None:
+        # pip stores this option as "build isolation enabled" and, for values that
+        # come from a configuration file or an environment variable, assigns the
+        # parsed boolean to it directly. A false value therefore disables
+        # isolation and a true value leaves it enabled.
         value = self.boolean(setting)
         if value is None:
             return
         if value:
-            self.top["no-build-isolation"] = True
-            self.statuses[setting.key] = TRANSLATED
-        else:
             self.statuses[setting.key] = IGNORED
+            self.note(
+                WARNING,
+                setting.key,
+                "pip reads no-build-isolation inverted from configuration files and "
+                "environment variables: a true value leaves build isolation enabled, so "
+                "there is nothing to translate. If you meant to disable isolation, pip "
+                "needs a false value here, and uv needs no-build-isolation = true.",
+            )
+            return
+        self.top["no-build-isolation"] = True
+        self.statuses[setting.key] = TRANSLATED
         self.note(
-            WARNING,
+            INFO,
             setting.key,
-            "pip has historically read no-build-isolation from configuration files and "
-            "environment variables inverted (a false value disables isolation). Check which "
-            "behaviour you rely on before keeping this translation.",
+            "pip reads no-build-isolation inverted from configuration files and "
+            "environment variables: this false value disables build isolation in pip, "
+            "so uv gets no-build-isolation = true.",
         )
 
     def config_settings_option(self, setting: Setting) -> None:

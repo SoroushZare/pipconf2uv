@@ -38,9 +38,7 @@ def paths(found, kind):
 
 
 def test_returns_a_list_of_configfile():
-    found = candidate_files(
-        env={}, platform="linux", home=LINUX_HOME, isdir=never_a_dir
-    )
+    found = candidate_files(env={}, platform="linux", home=LINUX_HOME, isdir=never_a_dir)
     assert isinstance(found, list)
     assert found and all(isinstance(c, ConfigFile) for c in found)
 
@@ -117,9 +115,7 @@ def test_other_posix_platforms_follow_the_linux_rules():
     # ASSUMPTION: "linux (and any other POSIX platform)" means an unrecognised
     # platform string such as "freebsd14" is accepted and treated like linux.
     env = {"XDG_CONFIG_DIRS": "/opt/xdg", "XDG_CONFIG_HOME": "/data/cfg"}
-    assert discover("freebsd14", LINUX_HOME, env=env) == discover(
-        "linux", LINUX_HOME, env=env
-    )
+    assert discover("freebsd14", LINUX_HOME, env=env) == discover("linux", LINUX_HOME, env=env)
 
 
 # -- darwin ------------------------------------------------------------------
@@ -154,9 +150,7 @@ def test_darwin_asks_isdir_about_the_application_support_pip_directory():
 
 @pytest.mark.parametrize("isdir", [never_a_dir, always_a_dir])
 def test_darwin_does_not_consult_xdg_config_home(isdir):
-    found = discover(
-        "darwin", MAC_HOME, env={"XDG_CONFIG_HOME": "/data/cfg"}, isdir=isdir
-    )
+    found = discover("darwin", MAC_HOME, env={"XDG_CONFIG_HOME": "/data/cfg"}, isdir=isdir)
     assert found == discover("darwin", MAC_HOME, isdir=isdir)
     assert not any("/data/cfg" in path for _, path in found)
 
@@ -207,9 +201,7 @@ def test_win32_paths_use_backslashes_and_pip_ini_on_any_host():
         assert path.endswith("\\pip.ini")
 
 
-@pytest.mark.parametrize(
-    "platform, home", [("linux", LINUX_HOME), ("darwin", MAC_HOME)]
-)
+@pytest.mark.parametrize("platform, home", [("linux", LINUX_HOME), ("darwin", MAC_HOME)])
 def test_posix_paths_use_forward_slashes_and_pip_conf_on_any_host(platform, home):
     found = discover(platform, home, site_prefix="/venvs/proj")
     for _, path in found:

@@ -30,6 +30,14 @@ _URL_USERINFO = re.compile(r"((?:[A-Za-z][A-Za-z0-9+.\-]*:)?//)[^/?#\s]*@")
 _BARE_USERINFO = re.compile(r"[^\s/@:='\"]+:[^\s/]*@(?=[^\s/@])")
 
 
+def _mask_bare_userinfo(match: re.Match[str]) -> str:
+    """Mask ``user:password@`` unless it is a Windows path such as ``C:\\dir@name``."""
+    user, _, password = match.group(0)[:-1].partition(":")
+    if len(user) == 1 and user.isalpha() and password[:1] in ("\\", "/"):
+        return match.group(0)
+    return MASK + "@"
+
+
 def redact(text: str, key: str | None = None) -> str:
     """Replace user-info in every URL found in ``text`` with ``****``.
 
@@ -38,7 +46,7 @@ def redact(text: str, key: str | None = None) -> str:
     which only the option name makes recognisable.
     """
     text = _URL_USERINFO.sub(lambda match: match.group(1) + MASK + "@", text)
-    text = _BARE_USERINFO.sub(MASK + "@", text)
+    text = _BARE_USERINFO.sub(_mask_bare_userinfo, text)
     if key == "proxy" and "://" not in text and "@" in text and not text.startswith(MASK + "@"):
         text = MASK + "@" + text.rsplit("@", 1)[1]
     return text
