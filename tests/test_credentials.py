@@ -328,11 +328,17 @@ def test_token_only_user_info_still_gets_an_index_variable_note(cli):
     assert "UV_INDEX_PRIMARY_USERNAME" in cli.json().note_text()
 
 
-def test_proxy_note_names_https_proxy_and_no_index_variable(cli):
+def test_proxy_credentials_get_their_own_note_naming_https_proxy(cli):
+    # Every proxy already gets a note about older uv versions, so compare
+    # with a credential-free proxy: removing credentials must add a note.
+    cli.user_conf("[global]\nproxy = http://proxy.example.com:3128\n")
+    without = cli.json()["notes"]
     cli.user_conf("[global]\nproxy = http://{}@proxy.example.com:3128\n".format(AUTH))
-    text = cli.json().note_text()
-    assert "HTTPS_PROXY" in text
-    assert "UV_INDEX_" not in text
+    report = cli.json()
+    extra = [n for n in report["notes"] if n not in without]
+    assert len(report["notes"]) > len(without)
+    assert any("HTTPS_PROXY" in n["message"] for n in extra)
+    assert "UV_INDEX_" not in report.note_text()
 
 
 def test_no_credential_note_without_credentials(cli):

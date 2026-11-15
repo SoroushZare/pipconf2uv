@@ -145,6 +145,8 @@ def test_extra_index_plus_implicit_pypi_counts_as_two_indexes(cli):
 
 
 def test_two_extra_indexes_with_no_index_count_as_two_indexes(cli):
+    # ASSUMPTION: no-index only removes the implicit PyPI from the count;
+    # explicitly configured indexes are still emitted and counted.
     cli.options(no_index="true", extra_index_url="{} {}".format(EXTRA_1, EXTRA_2))
     assert cli.json().uv["index-strategy"] == "unsafe-best-match"
 
