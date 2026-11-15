@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipconf2uv"
+version = "0.1.0"
+description = "Translate pip configuration (pip.conf, pip.ini, PIP_* variables) into uv configuration."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Soroush Zare" }]
+keywords = ["pip", "uv", "configuration", "migration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy",
+    'tomli; python_version < "3.11"',
+]
+
+[project.scripts]
+pipconf2uv = "pipconf2uv.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/SoroushZare/pipconf2uv"
+Repository = "https://github.com/SoroushZare/pipconf2uv"
+Issues = "https://github.com/SoroushZare/pipconf2uv/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+strict = true
+files = ["src"]
